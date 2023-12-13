@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Электронная ведомость</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group label {
+            display: inline-block;
+            width: 100px;
+            margin-right: 0.5rem;
+        }
+
+        .form-group input {
+            width: calc(100% - 110px);
+        }
+
+        #tableCaption {
+            margin-top: 0.5rem;
+            font-size: 16px;
+        }
+
+        .col-md-6 {
+            max-width: 60%;
+            margin: auto;
+        }
+        .btn {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body style="background-color: rgba(220,220,220, 0.5);">
+
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(0, 123, 255, 0.5)">
+    <a class="navbar-brand" style="pointer-events: none;">Электронная ведомость</a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/logout">Выход</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="text-center">Страница студента</h1>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8 offset-md-2">
+            <form th:action="@{/student}" method="get" class="bg-white p-4 rounded form-inline"
+                  onsubmit="return validateAndSubmitForm('group', 'subject')">
+
+                <div class="form-group mb-2 mt-2">
+                    <label for="group" class="col-form-label pr-2 text-center mr-0">Группа:</label>
+                    <select id="group" name="groupId" th:field="*{groups}"
+                            th:onchange="updateSubjects('group', 'subject')"
+                            class="form-control mr-md-1 ml-0" style="width: 120px;">
+                        <option value="" selected>---</option>
+                        <option th:each="group : ${groups}" th:value="${group.group}" th:text="${group.group}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-2 mt-2">
+                    <label for="subject" class="col-form-label pr-2 text-center mr-0">Предмет:</label>
+                    <select id="subject" name="subjectId" th:field="*{subjects}"
+                            class="form-control mr-md-1 ml-0" style="width: 120px;">
+                        <option value="" selected>---</option>
+                        <option th:each="subject : ${subjects}" th:value="${subject.id}"
+                                th:text="${subject.subject}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group mr-md-2 mt-2 ml-4">
+                    <a class="btn btn-primary"
+                       style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)"
+                       th:onclick="loadData()">Показать ведомость</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <h4 id="tableCaption" class="text-center mb-0 mt-3"></h4>
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <div style="max-width: 800px; max-height: 400px; overflow: auto; margin: auto;">
+                <table id="studentTable" class="table table-bordered table-stripped bg-white" style="display: none">
+                    <thead class="thead-dark">
+                    <tr>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    window.onload = function() {
+        updateSubjects();
+    };
+
+    function updateSubjects() {
+        var groups = /*[[${groups}]]*/ [];
+        var subjects = /*[[${subjects}]]*/ [];
+
+        const groupId = document.getElementById("group").value;
+        const subjectSelect = document.getElementById("subject");
+
+        while (subjectSelect.options.length > 0) {
+            subjectSelect.remove(0);
+        }
+
+        var defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.text = "---";
+        subjectSelect.appendChild(defaultOption);
+
+        for (let i = 0; i < subjects.length; i++) {
+            if (subjects[i].group == groupId) {
+                const option = document.createElement("option");
+                option.value = subjects[i].id;
+                option.text = subjects[i].subject;
+                subjectSelect.appendChild(option);
+            }
+        }
+    }
+
+
+    function validateForm() {
+        var groupId = document.getElementById("group").value;
+        var subjectId = document.getElementById("subject").value;
+
+        if (groupId === "" || subjectId === "") {
+            alert("Пожалуйста, выберите группу и предмет.");
+            return false;
+        }
+
+        return true;
+    }
+
+    function loadData() {
+        if (validateForm()) {
+            var table = document.getElementById("studentTable");
+            table.style.display = 'table';
+            const selectedSubjectId = document.getElementById("subject").value;
+            const selectedGroupId = document.getElementById("group").value;
+            var subjects = /*[[${subjects}]]*/ [];
+            const selectedSubject = subjects.find(subject => subject.id === parseInt(selectedSubjectId));
+            document.getElementById("tableCaption").innerText = `Группа: ${selectedGroupId}, Предмет: ${selectedSubject.subject}`;
+            document.getElementById("tableCaption").style.fontSize = "18px";
+            fetch('/subject/' + selectedSubjectId)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    const numRows = data.numRows;
+                    const numColumns = data.numColumns;
+                    const cellsData = data.cells;
+                    updateTable(cellsData, numRows, numColumns);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    }
+
+    function updateTable(data, numRows, numColumns) {
+        var tableBody = document.querySelector("#studentTable tbody");
+        tableBody.innerHTML = '';
+        for (var i = 0; i < numRows; i++) {
+            var row = tableBody.insertRow(i);
+            for (var j = 0; j < numColumns; j++) {
+                var cell = row.insertCell(j);
+                var matchingCell = data.find(cell => cell.row === i && cell.column === j);
+                if (matchingCell) {
+                    cell.textContent = matchingCell.value;
+                } else {
+                    cell.textContent = '';
+                }
+                cell.classList.add("text-center");
+            }
+        }
+    }
+
+</script>
+
+</body>
+</html>

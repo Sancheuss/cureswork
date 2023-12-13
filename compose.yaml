@@ -1,0 +1,18 @@
+services:
+  pgadmin:
+    image: 'dpage/pgadmin4:latest'
+    environment:
+      - 'PGADMIN_DEFAULT_EMAIL=abc@mail.ru'
+      - 'PGADMIN_DEFAULT_PASSWORD=1234'
+    ports:
+      - '80:80'
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=db'
+      - 'POSTGRES_PASSWORD=user'
+      - 'POSTGRES_USER=user'
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data

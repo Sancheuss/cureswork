@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Электронная ведомость</title>
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+          crossorigin="anonymous">
+
+    <style>
+        .container {
+            margin-top: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group label {
+            display: inline-block;
+            width: 100px;
+            margin-right: 0.5rem;
+        }
+
+        .form-group input {
+            width: calc(100% - 110px);
+        }
+
+        #tableCaption {
+            margin-top: 0.5rem;
+            font-size: 16px;
+        }
+
+        .col-md-6 {
+            max-width: 60%;
+            margin: auto;
+        }
+        .btn {
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body style="background-color: rgba(220,220,220, 0.5);">
+
+<nav class="navbar navbar-expand-lg navbar-light" style="background-color: rgba(0, 123, 255, 0.5)">
+    <a class="navbar-brand" style="pointer-events: none;">Электронная ведомость</a>
+    <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+            <li class="nav-item">
+                <a class="nav-link" href="/logout">Выход</a>
+            </li>
+        </ul>
+    </div>
+</nav>
+
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <h1 class="text-center">Страница преподавателя</h1>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-8 offset-md-2">
+            <form th:action="@{/advteacher}" method="get" class="bg-white p-4 rounded form-inline"
+                  onsubmit="return validateAndSubmitForm('selectedGroup', 'selectedSubject')">
+
+                <div class="form-group mb-2 mt-2">
+                    <label for="group" class="col-form-label pr-2 text-center mr-0">Группа:</label>
+                    <select id="selectedGroup" name="groupId" th:field="*{groups}"
+                            th:onchange="updateSubjects('selectedGroup', 'selectedSubject')"
+                            class="form-control mr-md-1 ml-0" style="width: 120px;">
+                        <option value="" selected>---</option>
+                        <option th:each="group : ${groups}" th:value="${group.group}" th:text="${group.group}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group mb-2 mt-2">
+                    <label for="subject" class="col-form-label pr-2 text-center mr-0">Предмет:</label>
+                    <select id="selectedSubject" name="subjectId" th:field="*{subjects}"
+                            class="form-control mr-md-1 ml-0" style="width: 120px;">
+                        <option value="" selected>---</option>
+                        <option th:each="subject : ${subjects}" th:value="${subject.id}"
+                                th:text="${subject.subject}"></option>
+                    </select>
+                </div>
+
+                <div class="form-group mr-md-2 mt-2 ml-4">
+                    <a class="btn"
+                       style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)"
+                       th:onclick="loadData()">Показать ведомость</a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+
+    <div class="row mt-0 mb-0">
+        <div class="col-md-12 text-center h4">
+            <a onclick="openCreateSheetModal()" class="btn btn-link mb-0 h4" style="font-size: 19px;">Создать</a>
+            <a onclick="openCreateExcelSheetModal()" class="btn btn-link mb-0 h4" style="font-size: 19px;">Загрузить данные из Excel</a>
+            <a onclick="openDeleteSheetModal()" class="btn btn-link mb-0 h4" style="font-size: 19px;">Удалить</a>
+            <a onclick="openSaveSheetModal()" class="btn btn-link mb-0 h4" style="font-size: 19px;">Сохранить</a>
+            <a onclick="openEditSheetModal()" class="btn btn-link mb-0 h4" style="font-size: 19px;">Изменить</a>
+        </div>
+    </div>
+
+    <div class="modal" id="createSheetModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать ведомость</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeModal('createSheetModal')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form th:action="@{/advteacher/createSheet}" method="post" id="createSheetForm"
+                          onsubmit="return validateCreateForm()">
+
+                        <div class="form-group">
+                            <label for="numRows" class="mr-2" style="width: 200px">Количество строк:</label>
+                            <input type="number" id="numRows" name="numRows" required min="1" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="numColumns" class="mr-2" style="width: 200px">Количество столбцов:</label>
+                            <input type="number" id="numColumns" name="numColumns" required min="1"
+                                   class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="group" class="mr-2">Группа:</label>
+                            <input type="text" id="group" name="group" required class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subject" class="mr-2">Предмет:</label>
+                            <input type="text" id="subject" name="subject" required class="form-control">
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button type="button" class="btn"
+                                    style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)"
+                                    th:onclick="createSheet(); clearForm('createSheetForm')">Создать
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="createExcelSheetModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать ведомость</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeModal('createExcelSheetModal')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form th:action="@{/advteacher/createExcelSheet}" method="post" id="createExcelSheetForm"
+                          onsubmit="return validateCreateForm()">
+
+                        <div class="form-group">
+                            <label for="excelFile" class="mr-2" style="width: 200px">Загрузить из файла Excel:</label>
+                            <input type="file" id="excelFile" name="excelFile" accept=".xls, .xlsx"
+                                   class="form-control-file">
+                        </div>
+                        <div class="form-group text-center">
+                            <button type="button" class="btn"
+                                    style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)"
+                                    th:onclick="uploadExcelFile(); clearForm('createExcelSheetForm')">Загрузить
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="deleteSheetModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Удалить ведомость</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeModal('deleteSheetModal')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form th:action="@{/advteacher/deleteSheet}" method="get" id="deleteSheetForm"
+                          class="bg-white p-4 rounded" onsubmit="return validateForm('deleteGroup', 'deleteSubject')">
+                        <div class="form-group mx-sm-3 mb-2">
+                            <label for="deleteGroup" class="mr-2">Группа:</label>
+                            <select id="deleteGroup" name="group" th:field="*{groups}"
+                                    th:onchange="updateSubjects('deleteGroup', 'deleteSubject')" class="form-control">
+                                <option value="" selected>---</option>
+                                <option th:each="group : ${groups}" th:value="${group.group}"
+                                        th:text="${group.group}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mx-sm-3 mb-2">
+                            <label for="deleteSubject" class="mr-2">Предмет:</label>
+                            <select id="deleteSubject" name="subjectId" th:field="*{subjects}" class="form-control">
+                                <option value="" selected>---</option>
+                                <option th:each="subject : ${subjects}" th:value="${subject.id}"
+                                        th:text="${subject.subject}"></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button type="button" class="btn btn-danger"
+                                    th:onclick="submitDeleteSheetForm(); clearForm('deleteSheetForm'); updateSubjects()">Удалить
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="saveSheetModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Сохранить ведомость в формате Excel</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeModal('saveSheetModal')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="return saveSheet()">
+                        <p>Введите название файла:</p>
+                        <input type="text" id="saveFileName" required class="form-control">
+                        <div class="form-group text-center mt-3">
+                            <button type="submit" class="btn"
+                                    style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)">
+                                Сохранить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="editSheetModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Изменить ведомость</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"
+                            onclick="closeModal('editSheetModal')">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form onsubmit="return editSheet()">
+                        <div class="form-group">
+                            <label for="editNumRows" class="mr-2" style="width: 200px">Количество строк:</label>
+                            <input type="number" id="editNumRows" required min="1" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="editNumColumns" class="mr-2" style="width: 200px">Количество столбцов:</label>
+                            <input type="number" id="editNumColumns" required min="1" class="form-control">
+                        </div>
+
+                        <div class="form-group text-center mt-3">
+                            <button type="button" class="btn"
+                                    style="background-color: rgba(0, 123, 255, 0.5); color: rgba(0, 0, 0, 0.9)"
+                                    th:onclick="changeTableSize(); clearForm('deleteSheetForm')">Изменить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col-md-12">
+            <h4 id="tableCaption" class="text-center mb-1 mt-2"></h4>
+            <div style="max-width: 800px; max-height: 400px; overflow: auto; margin: auto;">
+                <table id="teacherTable" class="table table-bordered table-stripped bg-white" style="display: none">
+                    <thead class="dark">
+                    <tr>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script th:inline="javascript">
+    var isEditMode = false;
+    var editedCell;
+
+function toggleEditMode() {
+    isEditMode = !isEditMode;
+    if (!isEditMode && editedCell) {
+        saveEditedCell();
+    }
+}
+
+function startEdit(cell) {
+    if (isEditMode) return;
+    toggleEditMode();
+    editedCell = cell;
+    var cellValue = cell.textContent;
+    console.log('Cell:', editedCell)
+    cell.innerHTML = '<input type="text" class="form-control" value="' + cellValue + '" onblur="saveEditedCell()">';
+}
+
+function updateCellValue(subjectId, row, column, value) {
+    fetch('/advteacher/editSheet', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            subjectId: subjectId,
+            row: row,
+            column: column,
+            value: value,
+        }),
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok. Status: ' + response.status);
+        }
+        response.json();
+    })
+    .then(data => {
+        console.log('Updated successfully:', data);
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function saveEditedCell() {
+    if (editedCell) {
+        console.log('Cell:', editedCell)
+        var inputValue = editedCell.querySelector('input').value;
+        var row = editedCell.parentNode.rowIndex - 1;
+        var column = editedCell.cellIndex;
+        var subjectId = +document.getElementById("selectedSubject").value;
+
+        updateCellValue(subjectId, row, column, inputValue);
+        editedCell.textContent = inputValue;
+        editedCell = null;
+    }
+    toggleEditMode();
+}
+
+    window.onload = function() {
+        updateSubjects();
+    };
+
+    function updateSubjects(groupElementId, subjectElementId) {
+        var groups = /*[[${groups}]]*/ [];
+        var subjects = /*[[${subjects}]]*/ [];
+
+        const groupElement = document.getElementById(groupElementId);
+        const groupId = groupElement ? groupElement.value : null;
+
+        const subjectSelect = document.getElementById(subjectElementId);
+
+        if (subjectSelect) {
+            while (subjectSelect.options.length > 0) {
+                subjectSelect.remove(0);
+            }
+
+            var defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.text = "---";
+            subjectSelect.appendChild(defaultOption);
+
+            for (let i = 0; i < subjects.length; i++) {
+                if (subjects[i].group == groupId) {
+                    const option = document.createElement("option");
+                    option.value = subjects[i].id;
+                    option.text = subjects[i].subject;
+                    subjectSelect.appendChild(option);
+                }
+            }
+        }
+    }
+
+    var currentTableData = null;
+    function validateAndSubmitForm(groupElementId, subjectElementId) {
+        var groupId = document.getElementById(groupElementId).value;
+        var subjectId = document.getElementById(subjectElementId).value;
+
+        if (groupId === "" || subjectId === "") {
+            alert("Пожалуйста, выберите группу и предмет.");
+            return false;
+        }
+
+        currentTableData = {
+            selectedGroup: groupElementId,
+            selectedSubject: subjectElementId
+        };
+
+        return true;
+    }
+
+    function loadData() {
+        if (validateAndSubmitForm('selectedGroup', 'selectedSubject')) {
+            var table = document.getElementById("teacherTable");
+            table.style.display = 'table';
+            const selectedSubjectId = document.getElementById("selectedSubject").value;
+            const selectedGroupId = document.getElementById("selectedGroup").value;
+            var subjects = /*[[${subjects}]]*/ [];
+            const selectedSubject = subjects.find(subject => subject.id === parseInt(selectedSubjectId));
+
+            document.getElementById("tableCaption").innerText = `Группа: ${selectedGroupId}, Предмет: ${selectedSubject.subject}`;
+            document.getElementById("tableCaption").style.fontSize = "18px";
+
+            fetch('/subject/' + selectedSubjectId)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    const numRows = data.numRows;
+                    const numColumns = data.numColumns;
+                    const cellsData = data.cells;
+                    updateTable(cellsData, numRows, numColumns);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    }
+
+    function updateTable(data, numRows, numColumns) {
+        var tableBody = document.querySelector("#teacherTable tbody");
+        tableBody.innerHTML = '';
+
+        for (var i = 0; i < numRows; i++) {
+            var row = tableBody.insertRow(i);
+
+            for (var j = 0; j < numColumns; j++) {
+                var cell = row.insertCell(j);
+
+                var matchingCell = data.find(cell => cell.row === i && cell.column === j);
+
+                if (matchingCell) {
+                    if (isEditMode) {
+                        cell.innerHTML = '<input type="text" class="form-control" value="' + matchingCell.value + '" onblur="saveEditedCell()">';
+                    } else {
+                        cell.textContent = matchingCell.value;
+                        cell.addEventListener('click', function () {
+                            startEdit(this);
+                        });
+                    }
+                } else {
+                    cell.textContent = '';
+                }
+                cell.classList.add("text-center");
+            }
+        }
+    }
+
+    function openCreateSheetModal() {
+        var modal = document.getElementById('createSheetModal');
+        modal.style.display = 'block';
+    }
+
+    function openCreateExcelSheetModal() {
+        var modal = document.getElementById('createExcelSheetModal');
+        modal.style.display = 'block';
+    }
+
+    function openDeleteSheetModal() {
+        var modal = document.getElementById('deleteSheetModal');
+        modal.style.display = 'block';
+    }
+
+    function closeModal(modalId) {
+        var modal = document.getElementById(modalId);
+        modal.style.display = 'none';
+    }
+
+    function openSaveSheetModal() {
+        var modal = document.getElementById('saveSheetModal');
+        modal.style.display = 'block';
+    }
+
+    function saveSheet() {
+        var saveFileName = document.getElementById('saveFileName').value;
+        var subjectId = document.getElementById("selectedSubject").value;
+
+        var requestData = {
+            saveFileName: saveFileName,
+            subjectId: subjectId,
+        };
+        fetch('/downloadExcel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => response.blob())
+        .then(blob => {
+            var link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = saveFileName + '.xlsx';
+            link.click();
+            closeModal('saveSheetModal');
+        })
+        .catch(error => console.error('Ошибка при сохранении файла:', error));
+
+        return false;
+    }
+
+    function openEditSheetModal() {
+        var modal = document.getElementById('editSheetModal');
+        modal.style.display = 'block';
+    }
+
+    function validateCreateForm() {
+        var numRows = document.getElementById("numRows").value;
+        var numColumns = document.getElementById("numColumns").value;
+
+        var group = document.getElementById("group").value;
+        var subject = document.getElementById("subject").value;
+        if (numRows.trim() === "" || numColumns.trim() === "" || group.trim() === "" || subject.trim() === "") {
+            alert("Пожалуйста, заполните все поля.");
+            return false;
+        }
+        return true;
+    }
+
+function submitDeleteSheetForm() {
+    var group = document.getElementById('deleteGroup').value;
+    var subjectId = document.getElementById('deleteSubject').value;
+
+    fetch('/advteacher/deleteSheet', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'group=' + encodeURIComponent(group) + '&subjectId=' + encodeURIComponent(subjectId),
+    })
+    .then(response => {
+        if (response.ok) {
+            closeModal('deleteSheetModal');
+            window.location.reload()
+        } else {
+            console.error('Error:', response.statusText);
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function clearForm(formName) {
+    var form = document.getElementById(formName);
+    if (form) {
+        form.reset();
+    }
+}
+
+    function changeTableSize() {
+        var subjectId = document.getElementById("selectedSubject").value;
+        var numberRows = document.getElementById('editNumRows').value;
+        var numberColumns = document.getElementById('editNumColumns').value;
+
+        var requestData = {
+            numberRows: numberRows,
+            numberColumns: numberColumns,
+            subjectId: subjectId
+        };
+
+        if (numRows !== null && numColumns !== null) {
+            fetch('/advteacher/changeTableSize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+               body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                if (response.ok) {
+                    closeModal('editSheetModal');
+                    updateSubjects();
+                }else {
+                     alert('Ошибка при изменении размеров ведомости:', response.statusText);
+                }
+            })
+            .then(data => {
+                console.log('Table size changed successfully:', data);
+                loadData();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    }
+
+function uploadExcelFile() {
+    var excelFileInput = document.getElementById('excelFile');
+    var excelFile = excelFileInput.files[0];
+    var subjectId = document.getElementById("selectedSubject").value;
+
+
+    var formData = new FormData();
+    formData.append('file', excelFile);
+    formData.append('subjectId', subjectId);
+
+    closeModal('createExcelSheetModal');
+
+    fetch('/uploadExcel', {
+        method: 'POST',
+        body: formData,
+    })
+    .then(response => {
+        if (response.ok) {
+            alert('Файл успешно загружен');
+        } else {
+            alert('Ошибка загрузки файла. Пожалуйста, откройте ведомость перед загрузкой файла.');
+        }
+    })
+    .catch(error => console.error('Ошибка загрузки файла:', error));
+}
+
+
+
+    function createSheet() {
+    var numColumns = document.getElementById('numColumns').value;
+    var numRows = document.getElementById("numRows").value;
+    var group = document.getElementById('group').value;
+    var subject = document.getElementById("subject").value;
+
+        var requestData = {
+            numRows: numRows,
+            numColumns: numColumns,
+            group: group,
+            subject: subject
+        };
+        fetch('/advteacher/createSheet', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            if (response.ok) {
+                closeModal('createSheetModal');
+                window.location.reload()
+            } else if (response.status === 400){
+                return response.text();
+            }
+        })
+        .then(data => {
+            if (data) {
+            alert(data);
+        }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+</script>
+
+</body>
+</html>
